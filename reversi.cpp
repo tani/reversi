@@ -1,6 +1,5 @@
 #include<cstdint>
 #include<valarray>
-#include<random>
 #include<ctime>
 
 #include<cassert>
@@ -163,36 +162,45 @@ Board get_reverse(Board black, Board white, Board position) {
          pattern3[4] | pattern3[5] | pattern3[6] | pattern3[7];
 }
 
-double simulate(Board black, Board white, Board position) {
-  std::mt19937 mt(std::time(NULL));
-  size_t w = 0, t = 2 << 16; 
+uint32_t xor32(void) {
+  static uint32_t y = std::time(NULL);
+  y = y ^ (y << 13); y = y ^ (y >> 17);
+  return y = y ^ (y << 5);
+}
+
+std::tuple<Board, Board, bool> simulate(Board black, Board white, size_t n = 64) {
+  size_t skip = 0;
+  bool turn = false;
+  while(skip < 2 && popcount(black | white) < n) {
+    Board candidates = turn
+      ? get_candidates(black, white)
+      : get_candidates(white, black);
+    skip = candidates ? 0 : (skip + 1);
+    size_t k = candidates && xor32() % popcount(candidates);
+    for(int j = 0; j < k; j++) {
+      candidates &= ~(bit_floor(candidates));
+    }
+    Board position = bit_floor(candidates);
+    Board reverse = turn
+      ? get_reverse(black, white, position)
+      : get_reverse(white, black, position);
+    black ^= turn ? reverse ^ position : reverse;
+    white ^= turn ? reverse : reverse ^ position;
+    turn = !turn;
+  }
+  return {black, white, turn};
+} 
+
+double evaluate(Board black, Board white, Board position, size_t n = 1024) {
+  size_t w = 0; 
   Board reverse = get_reverse(black, white, position);
   Board black1 = black ^ reverse ^ position;
   Board white1 = white ^ reverse;
-  for(size_t r = 0; r < t; r++) {
-    Board black2 = black1, white2 = white1;
-    size_t skip = 0;
-    bool turn = false;
-    while(skip < 2) {
-      Board candidates = turn
-        ? get_candidates(black2, white2)
-        : get_candidates(white2, black2);
-      skip += candidates == 0;
-      size_t k = candidates && mt() % popcount(candidates);
-      for(int j = 0; j < k; j++) {
-        candidates &= ~(bit_floor(candidates));
-      }
-      Board position = bit_floor(candidates);
-      Board reverse = turn
-        ? get_reverse(black2, white2, position)
-        : get_reverse(white2, black2, position);
-      black2 ^= turn ? reverse ^ position : reverse;
-      white2 ^= turn ? reverse : reverse ^ position;
-      turn = !turn;
-    }
+  for(size_t r = 0; r < n; r++) {
+    auto [ black2, white2, _ ] = simulate(black1, white1);
     w += popcount(black2) > popcount(white2);
   }
-  return 1.0 * w / t;
+  return (1.0 * w) / n;
 }
 
 int main(int argc, char** argv) {
@@ -201,11 +209,11 @@ int main(int argc, char** argv) {
     "        "
     "        "
     "   ox   "
-    "   xxx  "
+    "   xo   "
     "        "
     "        "
     "        "
   );
-  std::printf("Rate: %f", simulate(white, black, get_position(3, 5)));
+  std::printf("Rate: %f", evaluate(black, white, get_position(3, 2)));
   return 0;
 }
