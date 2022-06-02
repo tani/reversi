@@ -1,6 +1,9 @@
 #include<cstdint>
 #include<valarray>
 #include<ctime>
+#include<unordered_map>
+#include<utility>
+#include<bitset>
 
 #include<cassert>
 #include<cstdio>
@@ -168,6 +171,33 @@ uint32_t xor32(void) {
   return y = y ^ (y << 5);
 }
 
+auto memo = std::unordered_map<std::bitset<128>, double>();
+double analyze(Board black, Board white, double probability = 1, bool turn = true, size_t skip = 0) {
+  auto key = std::bitset<128>(black) << 64 | std::bitset<128>(white);
+  if (memo.find(key) != memo.end()) {
+    return memo.at(key);
+  }
+  if (skip >= 2 || popcount(black | white) == 64) {
+    return popcount(black) > popcount(white) ? probability : 0;
+  }
+  Board candidates = get_candidates(turn ? black : white, turn ? white : black);
+  if(!candidates) {
+    return analyze(black, white, probability, !turn, skip + 1);
+  }
+  double sum = 0;
+  size_t n = popcount(candidates);
+  for(int j = 0; j < n; j++) {
+    Board position = bit_floor(candidates);
+    Board reverse = get_reverse(turn ? black : white, turn ? white : black, position);
+    Board black1 = turn ? black ^ reverse ^ position : black ^ reverse;
+    Board white1 = turn ? white ^ reverse : white ^ reverse ^ position;
+    sum += analyze(black1, white1, probability / n, !turn, 0);
+    candidates &= ~position;
+  }
+  memo.insert(std::make_pair(key, sum));
+  return sum;
+}
+
 std::tuple<Board, Board, bool> simulate(Board black, Board white, size_t n = 64) {
   size_t skip = 0;
   bool turn = false;
@@ -214,6 +244,8 @@ int main(int argc, char** argv) {
     "        "
     "        "
   );
-  std::printf("Rate: %f", evaluate(black, white, get_position(3, 2)));
+  auto [black1, white1, turn] = simulate(black, white, 51);
+  std::printf("Rate: %lg\n", analyze(black1, white1, turn));
+  //std::printf("Rate: %f", evaluate(black, white, get_position(3, 2)));
   return 0;
 }
