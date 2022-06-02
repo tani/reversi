@@ -60,7 +60,7 @@ std::string stringify(Board black, Board white, bool newline = false) {
   return ss.str();
 }
 
-uint64_t HorizontalMask = (
+Board HorizontalMask = (
     0b01111110ull << 8 * 7
   | 0b01111110ull << 8 * 6
   | 0b01111110ull << 8 * 5
@@ -70,7 +70,7 @@ uint64_t HorizontalMask = (
   | 0b01111110ull << 8 * 1
   | 0b01111110ull << 8 * 0
 );
-uint64_t VerticalMask = (
+Board VerticalMask = (
     0b00000000ull << 8 * 7
   | 0b11111111ull << 8 * 6
   | 0b11111111ull << 8 * 5
