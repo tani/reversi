@@ -1,11 +1,15 @@
 all: reversi.out reversi_dbg.out
 
-reversi.out: reversi.cpp
-	g++ -o $@ -std=c++17 -march=native -O3 $<
-reversi_dbg.out: reversi.cpp
+reversi.out: main.cpp
+	g++ -o $@ -std=c++17 -flto -march=native -mtune=native -O3 $<
+
+reversi.s: main.cpp
+	g++ -o $@ -std=c++17 -flto -march=native -mtune=native -O3 -S $<
+
+reversi_dbg.out: main.cpp
 	g++ -g -o $@ -std=c++17 -march=native $<
 
 .PHONEY: clean
 
 clean:
-	rm reversi
+	rm -f reversi_dbg.out reversi.out reversi.s
