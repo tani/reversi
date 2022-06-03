@@ -1,3 +1,4 @@
+#include <array>
 #include<cstdint>
 #include<valarray>
 #include<ctime>
@@ -97,6 +98,47 @@ Board VerticalMask = (
   | 0b00000000ull << 8 * 0
 );
 
+#include<immintrin.h>
+Board get_candidates_simd(Board black, Board white) {
+  alignas(16) const std::array<Board, 4> mask = {
+    white & HorizontalMask,
+    white & HorizontalMask & VerticalMask,
+    white & VerticalMask,
+    white & HorizontalMask & VerticalMask,
+  };
+  alignas(16) const std::array<Board, 4> diff = { 1, 7, 8, 9 };
+  alignas(16) std::array<Board, 8> pattern = {
+    black, black, black, black, black, black, black, black
+  };
+  auto mask1 = _mm_load_si128(reinterpret_cast<const __m128i*>(mask.data()));
+  auto mask2 = _mm_load_si128(reinterpret_cast<const __m128i*>(mask.data()+2));
+  auto diff1 = _mm_load_si128(reinterpret_cast<const __m128i*>(diff.data()));
+  auto diff2 = _mm_load_si128(reinterpret_cast<const __m128i*>(diff.data()+2));
+  auto pattern1 = _mm_load_si128(reinterpret_cast<const __m128i*>(pattern.data()));
+  auto pattern2 = _mm_load_si128(reinterpret_cast<const __m128i*>(pattern.data()+2));
+  auto pattern3 = _mm_load_si128(reinterpret_cast<const __m128i*>(pattern.data()+4));
+  auto pattern4 = _mm_load_si128(reinterpret_cast<const __m128i*>(pattern.data()+6));
+  pattern1 = _mm_and_si128(mask1, _mm_sllv_epi64(pattern1, diff1));
+  pattern2 = _mm_and_si128(mask2, _mm_sllv_epi64(pattern2, diff2));
+  pattern3 = _mm_and_si128(mask1, _mm_srlv_epi64(pattern3, diff1));
+  pattern4 = _mm_and_si128(mask2, _mm_srlv_epi64(pattern4, diff2));
+  for(size_t i; i < 5; i++) {
+    pattern1 = _mm_or_si128(pattern1, _mm_and_si128(mask1, _mm_sllv_epi64(pattern1, diff1)));
+    pattern2 = _mm_or_si128(pattern2, _mm_and_si128(mask2, _mm_sllv_epi64(pattern2, diff2)));
+    pattern3 = _mm_or_si128(pattern3, _mm_and_si128(mask1, _mm_srlv_epi64(pattern3, diff1)));
+    pattern4 = _mm_or_si128(pattern4, _mm_and_si128(mask2, _mm_srlv_epi64(pattern4, diff2)));
+  }
+  pattern1 = _mm_sllv_epi64(pattern1, diff1);
+  pattern2 = _mm_sllv_epi64(pattern2, diff2);
+  pattern3 = _mm_srlv_epi64(pattern3, diff1);
+  pattern4 = _mm_srlv_epi64(pattern4, diff2);
+  _mm_store_si128(reinterpret_cast<__m128i*>(pattern.data()), pattern1);
+  _mm_store_si128(reinterpret_cast<__m128i*>(pattern.data()+2), pattern2);
+  _mm_store_si128(reinterpret_cast<__m128i*>(pattern.data()+4), pattern3);
+  _mm_store_si128(reinterpret_cast<__m128i*>(pattern.data()+6), pattern4);
+  return pattern[0] | pattern[1] | pattern[2] | pattern[3] |
+         pattern[4] | pattern[5] | pattern[6] | pattern[7];
+}
 Board get_candidates(Board black, Board white) {
   std::valarray<Board> mask = {
     white & HorizontalMask,
@@ -171,31 +213,35 @@ uint32_t xor32(void) {
   return y = y ^ (y << 5);
 }
 
+
 auto memo = std::unordered_map<std::bitset<128>, double>();
+std::bitset<128> get_key(Board black, Board white) {
+  return (std::bitset<128>(black) << 64) | std::bitset<128>(white);
+}
 double analyze(Board black, Board white, double probability = 1, bool turn = true, size_t skip = 0) {
-  auto key = std::bitset<128>(black) << 64 | std::bitset<128>(white);
-  if (memo.find(key) != memo.end()) {
-    return memo.at(key);
+  try {
+    return memo.at(get_key(black, white));
+  } catch (const std::out_of_range& _) {
+    if (skip >= 2 || popcount(black | white) == 64) {
+      return popcount(black) > popcount(white) ? probability : 0;
+    }
+    Board candidates = get_candidates_simd(turn ? black : white, turn ? white : black);
+    if(!candidates) {
+      return analyze(black, white, probability, !turn, skip + 1);
+    }
+    double sum = 0;
+    size_t n = popcount(candidates);
+    for(int j = 0; j < n; j++) {
+      Board position = bit_floor(candidates);
+      Board reverse = get_reverse(turn ? black : white, turn ? white : black, position);
+      Board black1 = turn ? black ^ reverse ^ position : black ^ reverse;
+      Board white1 = turn ? white ^ reverse : white ^ reverse ^ position;
+      sum += analyze(black1, white1, probability / n, !turn, 0);
+      candidates &= ~position;
+    }
+    memo.insert(std::make_pair(get_key(black, white), sum));
+    return sum;
   }
-  if (skip >= 2 || popcount(black | white) == 64) {
-    return popcount(black) > popcount(white) ? probability : 0;
-  }
-  Board candidates = get_candidates(turn ? black : white, turn ? white : black);
-  if(!candidates) {
-    return analyze(black, white, probability, !turn, skip + 1);
-  }
-  double sum = 0;
-  size_t n = popcount(candidates);
-  for(int j = 0; j < n; j++) {
-    Board position = bit_floor(candidates);
-    Board reverse = get_reverse(turn ? black : white, turn ? white : black, position);
-    Board black1 = turn ? black ^ reverse ^ position : black ^ reverse;
-    Board white1 = turn ? white ^ reverse : white ^ reverse ^ position;
-    sum += analyze(black1, white1, probability / n, !turn, 0);
-    candidates &= ~position;
-  }
-  memo.insert(std::make_pair(key, sum));
-  return sum;
 }
 
 std::tuple<Board, Board, bool> simulate(Board black, Board white, size_t n = 64) {
@@ -244,8 +290,8 @@ int main(int argc, char** argv) {
     "        "
     "        "
   );
-  auto [black1, white1, turn] = simulate(black, white, 51);
-  std::printf("Rate: %lg\n", analyze(black1, white1, turn));
+  auto [black1, white1, turn] = simulate(black, white, 52);
+  std::printf("Rate: %lg (%ld)\n", analyze(black1, white1, turn), memo.size());
   //std::printf("Rate: %f", evaluate(black, white, get_position(3, 2)));
   return 0;
 }
