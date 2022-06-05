@@ -8,14 +8,30 @@
 #include"./reverse.hpp"
 #include"./string.hpp"
 #include"./random.hpp"
+#include"./test.hpp"
 
-Board get_position(size_t x, size_t y) {
-  return 1ull << (x + y * 8);
+constexpr Board get_position(size_t x, size_t y) {
+  return 1ull << 63 >> (x + y * 8);
 }
+TEST_BEGIN(get_position)
+const Board expected = 
+  board(
+    0b00000000ull,
+    0b00000000ull,
+    0b00000000ull,
+    0b00100000ull,
+    0b00000000ull,
+    0b00000000ull,
+    0b00000000ull,
+    0b00000000ull
+  );
+static_assert(expected == get_position(2, 3));
+TEST_END(get_position)
 
 // {black}番が終了した盤面が渡される。{black}番の勝率を計算する。
 double analyze(Board black, Board white, double probability = 1, size_t skip = 0, size_t depth = 0) {
   if (skip >= 2 || ~(black | white) == 0) {
+    //puts(stringify(black, white, true).c_str());
     return depth % 2 == 0
       ? (popcount(black) > popcount(white) ? probability : 0)
       : (popcount(white) > popcount(black) ? probability : 0);
@@ -38,7 +54,7 @@ double analyze(Board black, Board white, double probability = 1, size_t skip = 0
 }
 
 // {black}番が終了した盤面が渡される。{white}番から最善手を{2n}回打ったときの勝率を返す。
-double evaluate_nega_alpha(Board black, Board white, size_t n = 5, bool isWhite = true, double a = 0, double b = 1) {
+double evaluate_nega_alpha(Board black, Board white, size_t n = 5, size_t depth = 0, double a = 0, double b = 1) {
   if (n == 0) {
     return analyze(black, white);
   }
@@ -49,7 +65,7 @@ double evaluate_nega_alpha(Board black, Board white, size_t n = 5, bool isWhite 
     Board reverse = get_reverse(white, black, position);
     Board black1 = black ^ reverse;
     Board white1 = white ^ reverse ^ position;
-    a = std::max(a, -evaluate_nega_alpha(white1, black1, n - !isWhite, !isWhite, -b, -a));
+    a = std::max(a, -evaluate_nega_alpha(white1, black1, n - (depth % 2), depth + 1, -b, -a));
     if (a >= b) {
       return a;
     }
@@ -79,7 +95,7 @@ std::tuple<Board, Board> simulate(Board black, Board white, size_t n = 30) {
     step++;
   }
   return {black, white};
-} 
+}
 
 // {black}番が終了した盤面が渡される。ランダムに{n}回試行したときの勝率を返す。
 double evaluate_monte_carlo(Board black, Board white, size_t n = 1024) {
@@ -109,7 +125,8 @@ int main(int argc, char** argv) {
   black1 ^= reverse ^ position;
   white1 ^= reverse;
 
-  std::printf("Rate: %lg\n", evaluate_nega_alpha(black1, white1));
+  std::printf(" NegaAlphaRate: %lg\n", evaluate_nega_alpha(black1, white1));
+  std::printf("MonteCarloRate: %lg\n", evaluate_monte_carlo(black1, white1));
   //std::printf("Rate: %f", evaluate(black, white, get_position(3, 2)));
   return 0;
 }
