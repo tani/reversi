@@ -12,7 +12,7 @@ reversi.dbg: main.cpp
 	$(CXX) -g -o $@ -std=c++17 -march=native -mtune=native $< -lprofiler
 
 reversi.wasm: main.cpp
-	emcc -o $@ -msimd128 -std=c++17 -O3 $<
+	emcc -o $@ -mtune=native -march=native -std=c++17 -O3 $<
 
 .PHONEY: clean
 

@@ -68,13 +68,12 @@ constexpr Board candidates =
 static_assert(get_candidates_nosimd(black, white) == candidates ,"");
 TEST_END(get_candidates)
 
+#if defined(__SSE2__)
 #if defined(__MSC_VER)
 #  include<intrin.h>
 #else
 #  include<x86intrin.h>
 #endif
-
-#if defined(__SSE2__)
 Board  get_candidates_simd128(Board black, Board white) {
   alignas(16) Board pattern[2];
   Board kcalb = bit_reverse(black);
@@ -102,6 +101,11 @@ Board  get_candidates_simd128(Board black, Board white) {
 #endif
 
 #if defined(__AVX2__)
+#if defined(__MSC_VER)
+#  include<intrin.h>
+#else
+#  include<x86intrin.h>
+#endif
 Board get_candidates_simd256(Board black, Board white) {
   alignas(32) Board mask[4] = {
     white & HorizontalMask, white & HorizontalMask & VerticalMask,
