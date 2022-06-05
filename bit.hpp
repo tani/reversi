@@ -38,7 +38,7 @@ constexpr uint64_t bit_shift_right(uint64_t a, size_t b) {
   }
 #elif defined(__clang__) || defined(__GNUC__)
   constexpr uint64_t bit_floor(uint64_t x) {
-    return 1ull << (64 - __builtin_clzll(x) - 1);
+    return x == 0 ? 0 : 1ull << (64 - __builtin_clzll(x) - 1);
   }
   constexpr size_t popcount(uint64_t x) {
     return __builtin_popcountll(x);
@@ -68,5 +68,6 @@ constexpr uint64_t bit_shift_right(uint64_t a, size_t b) {
 TEST_BEGIN(bit)
 static_assert(popcount(0b001001010100ull) == 4);
 static_assert(bit_floor(0b001001010100ull) == 0b001000000000ull);
+static_assert(bit_floor(0b000000000000ull) == 0b000000000000ull);
 static_assert(bit_reverse(0xf000'0000'0000'0000ull) == 0x0000'0000'0000'000full, "");
 TEST_END(bit)

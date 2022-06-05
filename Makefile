@@ -9,12 +9,12 @@ reversi.s: main.cpp
 	$(CXX) -o $@ -std=c++17 -flto -march=native -mtune=native -O0 -S $<
 
 reversi.dbg: main.cpp
-	$(CXX) -g -o $@ -std=c++17 -march=native -mtune=native $< -lprofiler
+	$(CXX) -pg -o $@ -std=c++17 -march=native -mtune=native $<
 
 reversi.wasm: main.cpp
-	emcc -o $@ -mtune=native -march=native -std=c++17 -O3 $<
+	emcc -o $@ -std=c++17 -flto -mtune=native -march=native -O3 $<
 
 .PHONEY: clean
 
 clean:
-	rm -f reversi.{s,out,dbg}
+	rm -f *.s *.dbg *.out

@@ -68,44 +68,12 @@ constexpr Board candidates =
 static_assert(get_candidates_nosimd(black, white) == candidates ,"");
 TEST_END(get_candidates)
 
-#if defined(__SSE2__)
-#if defined(__MSC_VER)
-#  include<intrin.h>
-#else
-#  include<x86intrin.h>
-#endif
-Board  get_candidates_simd128(Board black, Board white) {
-  alignas(16) Board pattern[2];
-  Board kcalb = bit_reverse(black);
-  Board etihw = bit_reverse(white);
-  size_t diff[4] = { 1, 7, 8, 9 };
-  Board mask[4] = {
-    HorizontalMask, HorizontalMask & VerticalMask,
-    VerticalMask, VerticalMask & HorizontalMask
-  };
-  __m128i mm_result = _mm_setzero_si128();
-  __m128i mm_pattern = _mm_setzero_si128();
-  __m128i mm_mask = _mm_setzero_si128();
-  for(int i = 0; i < 4; i++) {
-    mm_mask = _mm_set_epi64x(white & mask[i], etihw & mask[i]);
-    mm_pattern = _mm_set_epi64x(black, kcalb);
-    mm_pattern = _mm_and_si128(mm_mask, _mm_slli_epi64(mm_pattern, diff[i]));
-    for(int j = 0; j < 5; j++) {
-      mm_pattern = _mm_or_si128(mm_pattern, _mm_and_si128(mm_mask, _mm_slli_epi64(mm_pattern, diff[i])));
-    }
-    mm_result = _mm_or_si128(mm_result, _mm_slli_epi64(mm_pattern, diff[i]));
-  }
-  _mm_store_si128(reinterpret_cast<__m128i*>(pattern), mm_result);
-  return (pattern[0] | bit_reverse(pattern[1])) & ~ (black | white);
-}
-#endif
-
 #if defined(__AVX2__)
-#if defined(__MSC_VER)
-#  include<intrin.h>
-#else
-#  include<x86intrin.h>
-#endif
+#  if defined(__MSC_VER)
+#    include<intrin.h>
+#  else
+#    include<x86intrin.h>
+#  endif
 Board get_candidates_simd256(Board black, Board white) {
   alignas(32) Board mask[4] = {
     white & HorizontalMask, white & HorizontalMask & VerticalMask,
@@ -133,7 +101,7 @@ Board get_candidates(Board black, Board white) {
 }
 #else
 Board get_candidates(Board black, Board white) {
-  //return get_candidates_simd128(black, white);
+  //return get_candidates_simd256(black, white);
   return get_candidates_nosimd(black, white);
 }
 #endif

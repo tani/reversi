@@ -141,5 +141,6 @@ Board get_reverse(Board black, Board white, Board position) {
 #else
 Board get_reverse(Board black, Board white, Board position) {
   return get_reverse_nosimd(black, white, position);
+  //return get_reverse_simd256(black, white, position);
 }
 #endif
