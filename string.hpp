@@ -57,7 +57,7 @@ void print(Board black, Board white) {
     "  ┣━━━╋━━━╋━━━╋━━━╋━━━╋━━━╋━━━╋━━━┫\n"
     "8 ┃ %c ┃ %c ┃ %c ┃ %c ┃ %c ┃ %c ┃ %c ┃ %c ┃\n"
     "  ┗━━━┻━━━┻━━━┻━━━┻━━━┻━━━┻━━━┻━━━┛\n";
-  std::array<char, 64> s;
+  char s[64];
   Board m = 1ull << 63;
   for(int i = 0; i < 64; i++) {
     s[i] = (black & m) ? 'x'

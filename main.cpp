@@ -59,77 +59,78 @@ int main(int argc, char** argv) {
     "        "
     "        "
   );
-  print(black, white);
-  Board position, reverse, candidates;
-  char x, y;
-  do {
-    candidates = get_candidates(black, white);
-    if (candidates) {
-      printf("(%2ld/%2ld) YOU> ", popcount(black), popcount(white));
-      std::cin >> x >> y;
-      if (x == 'q' || y == 'q') {
-        exit(0);
-      }
-      position = get_position(x, y);
-      reverse = get_reverse(black, white, position);
-      if (reverse == 0) continue;
-      black ^= reverse ^ position;
-      white ^= reverse;
-      print(black, white);
-    } else {
-      printf("(%2ld/%2ld) YOU> PASS\n", popcount(black), popcount(white));
-      print(black, white);
-    }
-    position = search(black, white, [](auto black, auto white){
-      if (popcount(black | white) < 24) {
-        return evaluate_nega_alpha(black, white, [](auto black, auto white){
-          return evaluate_static(black, white);
-        }, 5);
-      } else if (popcount(black | white) < 44) {
-        return evaluate_monte_carlo_random(black, white, 4096);
-      } else {
-        return evaluate_nega_alpha(black, white, [](auto black, auto white){
-          return evaluate_win_loss(black, white);
-        }, 10);
-      }
-   });
-    if (position) {
-      x = (int)std::log2(position) % 8;
-      y = (int)std::log2(position) / 8;
-      printf("(%2ld/%2ld) COM> %c%c\n", popcount(black), popcount(white), (int)std::log2(position) % 8 + 'a', y + '1');
-      reverse = get_reverse(white, black, position);
-      black ^= reverse;
-      white ^= reverse ^ position;
-      print(black, white);
-    } else {
-      printf("(%2ld/%2ld) COM> PASS\n", popcount(black), popcount(white));
-      print(black, white);
-    }
-  } while(candidates != 0 || position != 0);
+  //print(black, white);
+  //Board position, reverse, candidates;
+  //char x, y;
+  //do {
+  //  candidates = get_candidates(black, white);
+  //  if (candidates) {
+  //    printf("(%2ld/%2ld) YOU> ", popcount(black), popcount(white));
+  //    std::cin >> x >> y;
+  //    if (x == 'q' || y == 'q') {
+  //      exit(0);
+  //    }
+  //    position = get_position(x, y);
+  //    reverse = get_reverse(black, white, position);
+  //    if (reverse == 0) continue;
+  //    black ^= reverse ^ position;
+  //    white ^= reverse;
+  //    print(black, white);
+  //  } else {
+  //    printf("(%2ld/%2ld) YOU> PASS\n", popcount(black), popcount(white));
+  //    print(black, white);
+  //  }
+  //  position = search(black, white, [](auto black, auto white){
+  //    if (popcount(black | white) < 24) {
+  //      return evaluate_nega_alpha(black, white, [](auto black, auto white){
+  //        return evaluate_static(black, white);
+  //      }, 5);
+  //    } else if (popcount(black | white) < 44) {
+  //      return evaluate_monte_carlo_random(black, white, 4096);
+  //    } else {
+  //      return evaluate_nega_alpha(black, white, [](auto black, auto white){
+  //        return evaluate_win_loss(black, white);
+  //      }, 10);
+  //    }
+  // });
+  //  if (position) {
+  //    x = (int)std::log2(position) % 8;
+  //    y = (int)std::log2(position) / 8;
+  //    printf("(%2ld/%2ld) COM> %c%c\n", popcount(black), popcount(white), (int)std::log2(position) % 8 + 'a', y + '1');
+  //    reverse = get_reverse(white, black, position);
+  //    black ^= reverse;
+  //    white ^= reverse ^ position;
+  //    print(black, white);
+  //  } else {
+  //    printf("(%2ld/%2ld) COM> PASS\n", popcount(black), popcount(white));
+  //    print(black, white);
+  //  }
+  //} while(candidates != 0 || position != 0);
 
-  if (popcount(black) > popcount(white)) {
-    puts("YOU WIN");
-  } else if (popcount(black) == popcount(white)) {
-    puts("YOU LOSE");
-  } else {
-    puts("DRAW");
-  }
-  //auto [white1, black1] = simulate(white, black, 20);
-  //auto candidates = get_candidates(black1, white1);
-  //Board position = bit_floor(candidates);
-  //Board reverse = get_reverse(black, white, position);
-  //black1 ^= reverse ^ position;
-  //white1 ^= reverse;
+  //if (popcount(black) > popcount(white)) {
+  //  puts("YOU WIN");
+  //} else if (popcount(black) == popcount(white)) {
+  //  puts("YOU LOSE");
+  //} else {
+  //  puts("DRAW");
+  //}
 
-  //Board best_position = search(black, white, [](auto black, auto white){
-  //  return evaluate_nega_alpha(black, white, [](auto black, auto white){
-  //    return evaluate_monte_carlo_random(black, white, 1000);
-  //  }, 2);
-  //});
-  //print(best_position, 0ull);
-  //std::printf(" NegaAlphaRate: %lg\n", evaluate_nega_alpha(black1, white1, [](auto black, auto white){return evaluate_monte_carlo_full(black, white);}));
-  //std::printf(" NegaAlphaRate: %lg\n", evaluate_nega_alpha(black1, white1, [](auto black, auto white){return evaluate_static(black, white);}));
-  //std::printf(" NegaAlphaRate: %lg\n", evaluate_nega_alpha(black1, white1, [](auto black, auto white){return evaluate_win_loss(black, white);}, 10));
-  //std::printf("MonteCarloRate: %lg\n", evaluate_monte_carlo_random(black1, white1));
+  auto [white1, black1] = simulate(white, black, 20);
+  auto candidates = get_candidates(black1, white1);
+  Board position = bit_floor(candidates);
+  Board reverse = get_reverse(black, white, position);
+  black1 ^= reverse ^ position;
+  white1 ^= reverse;
+
+  Board best_position = search(black, white, [](auto black, auto white){
+    return evaluate_nega_alpha(black, white, [](auto black, auto white){
+      return evaluate_monte_carlo_random(black, white, 1000);
+    }, 2);
+  });
+  print(best_position, 0ull);
+  std::printf(" NegaAlphaRate: %lg\n", evaluate_nega_alpha(black1, white1, [](auto black, auto white){return evaluate_monte_carlo_full(black, white);}));
+  std::printf(" NegaAlphaRate: %lg\n", evaluate_nega_alpha(black1, white1, [](auto black, auto white){return evaluate_static(black, white);}));
+  std::printf(" NegaAlphaRate: %lg\n", evaluate_nega_alpha(black1, white1, [](auto black, auto white){return evaluate_win_loss(black, white);}, 10));
+  std::printf("MonteCarloRate: %lg\n", evaluate_monte_carlo_random(black1, white1));
   return 0;
 }
