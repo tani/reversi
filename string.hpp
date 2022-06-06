@@ -1,7 +1,5 @@
 #pragma once
-#include <array>
-#include <cstdio>
-#include <functional>
+#include<cstdio>
 #include<string>
 #include<sstream>
 #include<tuple>

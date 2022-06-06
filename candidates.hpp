@@ -1,9 +1,4 @@
 #pragma once
-#include<valarray>
-#include<cstdint>
-#include<functional>
-#include<cassert>
-#include<cstdio>
 #include"./board.hpp"
 #include"./bit.hpp"
 #include"./test.hpp"

@@ -71,9 +71,9 @@ double evaluate_static(Board black, Board white) {
     0b10000001ull
   );
   size_t diff = popcount(black_candidates) - popcount(white_candidates) + 64; // 0 -- 128
-  size_t nedge = popcount(black_candidates & edge); // 0 -- 28
-  size_t ncorner = popcount(black_candidates & corner); // 0 -- 4
-  return (diff + nedge + ncorner) / 160.0;
+  size_t nedge = popcount(black_candidates & edge) - popcount(white_candidates & edge) + 28; // 56 
+  size_t ncorner = popcount(black_candidates & corner) - popcount(white_candidates & corner) + 4; // 8
+  return (0.0 + diff + 2 * nedge + 2 * ncorner) / (0.0 + 128 + 2 * 28 + 2 * 4);
 }
 
 using Eval = double(Board, Board);

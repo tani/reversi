@@ -1,7 +1,5 @@
 #pragma once
 #include<cstdint>
-#include<cstddef>
-#include<functional>
 
 using Board = uint64_t;
 
